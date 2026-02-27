@@ -1,0 +1,74 @@
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, ConversationHandler, filters
+import os
+
+TOKEN = os.environ.get("BOT_TOKEN")
+ADMIN_ID = int(os.environ.get("ADMIN_ID"))
+
+COLOR, PHONE, INFO = range(3)
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [["🛒 Buyurtma berish"]]
+    await update.message.reply_text(
+        "Assalomu alaykum!\nBuyurtma berish uchun tugmani bosing 👇",
+        reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    )
+
+async def order(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [["⚪ Oq", "⚫ Qora"]]
+    await update.message.reply_text(
+        "Rangni tanlang:",
+        reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    )
+    return COLOR
+
+async def color(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["color"] = update.message.text
+    button = [[KeyboardButton("📞 Telefon raqamni yuborish", request_contact=True)]]
+    await update.message.reply_text(
+        "Telefon raqamingizni yuboring:",
+        reply_markup=ReplyKeyboardMarkup(button, resize_keyboard=True)
+    )
+    return PHONE
+
+async def phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["phone"] = update.message.contact.phone_number
+    await update.message.reply_text(
+        "Ism va adresni yozing:",
+    )
+    return INFO
+
+async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["info"] = update.message.text
+
+    text = (
+        "📦 YANGI BUYURTMA\n\n"
+        f"🎨 Rang: {context.user_data['color']}\n"
+        f"📞 Telefon: {context.user_data['phone']}\n"
+        f"📍 Ism/Adres: {context.user_data['info']}"
+    )
+
+    await context.bot.send_message(chat_id=ADMIN_ID, text=text)
+
+    await update.message.reply_text(
+        "✅ Buyurtmangiz qabul qilindi!\nTez orada bog‘lanamiz.",
+        reply_markup=ReplyKeyboardMarkup([["🛒 Buyurtma berish"]], resize_keyboard=True)
+    )
+    return ConversationHandler.END
+
+app = ApplicationBuilder().token(TOKEN).build()
+
+conv = ConversationHandler(
+    entry_points=[MessageHandler(filters.TEXT & filters.Regex("Buyurtma"), order)],
+    states={
+        COLOR: [MessageHandler(filters.TEXT, color)],
+        PHONE: [MessageHandler(filters.CONTACT, phone)],
+        INFO: [MessageHandler(filters.TEXT, info)],
+    },
+    fallbacks=[]
+)
+
+app.add_handler(CommandHandler("start", start))
+app.add_handler(conv)
+
+app.run_polling()
