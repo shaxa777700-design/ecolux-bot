@@ -9,7 +9,7 @@ COLOR, PHONE, INFO = range(3)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [["🛒 Buyurtma berish"]]
-    await update.message.reply_text(
+    await update.message.reply_text
         "Assalomu alaykum!\nBuyurtma berish uchun tugmani bosing 👇",
         reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     )
